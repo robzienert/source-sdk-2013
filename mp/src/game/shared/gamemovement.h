@@ -250,6 +250,11 @@ protected:
 	// when we step on ground that's too steep, search to see if there's any ground nearby that isn't too steep
 	void			TryTouchGroundInQuadrants( const Vector& start, const Vector& end, unsigned int fMask, int collisionGroup, trace_t& pm );
 
+	// Leaning
+	void CheckLeaning(void);
+	void StartLeaning(void);
+	void StopLeaning(void);
+	bool IsLeaning(void) { return m_bIsLeaning; }
 
 protected:
 
@@ -277,6 +282,8 @@ protected:
 	int				m_iSpeedCropped;
 
 	float			m_flStuckCheckTime[MAX_PLAYERS+1][2]; // Last time we did a full test
+
+	bool m_bIsLeaning;
 
 	// special function for teleport-with-duck for episodic
 #ifdef HL2_EPISODIC

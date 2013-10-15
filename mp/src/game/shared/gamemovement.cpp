@@ -4521,6 +4521,73 @@ void CGameMovement::Duck( void )
 	}
 }
 
+
+//-----------------------------------------------------------------------------
+// Purpose: Player lean (robz)
+//-----------------------------------------------------------------------------
+void CGameMovement::CheckLeaning(void) {
+	if (player->IsSuitEquipped()) {
+		int buttonsChanged	= ( mv->m_nOldButtons ^ mv->m_nButtons );
+		int buttonsReleased	= buttonsChanged & mv->m_nOldButtons;
+		
+		if (mv->m_nButtons & IN_LEANLEFT)
+			StartLeaning();
+		else if (mv->m_nButtons & IN_LEANRIGHT)
+			StartLeaning();
+		else if (buttonsReleased & IN_LEANLEFT)
+			StopLeaning();
+		else if (buttonsReleased & IN_LEANRIGHT)
+			StopLeaning();
+	}
+}
+
+void CGameMovement::StartLeaning(void) {
+	Vector lean, currOffset, defaultOffset, newOffset;
+	currOffset = player->GetViewOffset();
+	defaultOffset = GetPlayerViewOffset(player->IsDucked());
+	AngleVectors(player->EyeAngles(), NULL, &lean, NULL);
+
+	float length = currOffset.Length2D();
+	if (mv->m_nButtons & IN_LEANLEFT) {
+		if (length > 20.0f) {
+			lean *= -25;
+			newOffset.x = clamp(lean.x, -25, 25);
+			newOffset.y = clamp(lean.y, -25, 25);
+		} else {
+			lean *= -5;
+			newOffset = currOffset;
+			newOffset += lean;
+		}
+		
+		newOffset.z = defaultOffset.z;
+		player->SetViewOffset(newOffset);
+	} else if (player->m_nButtons & IN_LEANRIGHT) {
+		if (length > 20.0f) {
+			lean *= 25;
+			newOffset.x = clamp(lean.x, -25, 25);
+			newOffset.y = clamp(lean.y, -25, 25);
+		} else {
+			lean *= 5;
+			newOffset = currOffset;
+			newOffset += lean;
+		}
+		
+		newOffset.z = defaultOffset.z;
+		player->SetViewOffset(newOffset);
+	}
+
+	m_bIsLeaning = true;
+}
+
+void CGameMovement::StopLeaning(void) {
+	// TODO Add stop lean transition
+	if ( player->IsDucked() || player->IsDucking() )
+		player->SetViewOffset(VEC_DUCK_VIEW);
+	else
+		player->SetViewOffset(VEC_VIEW);
+	m_bIsLeaning = false;
+}
+
 static ConVar sv_optimizedmovement( "sv_optimizedmovement", "1", FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY );
 
 //-----------------------------------------------------------------------------
@@ -4586,7 +4653,8 @@ void CGameMovement::PlayerMove( void )
 	m_nOnLadder = 0;
 
 	player->UpdateStepSound( player->m_pSurfaceData, mv->GetAbsOrigin(), mv->m_vecVelocity );
-
+	
+	CheckLeaning();
 	UpdateDuckJumpEyeOffset();
 	Duck();
 
